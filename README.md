@@ -1,3 +1,11 @@
+> **tmax-nb** is Nebello's fork of [InbarR/tmax](https://github.com/InbarR/tmax), tuned for working with Claude Code on macOS next to a browser.
+> What differs from upstream:
+> - **Session list view**: a scrollable card per open session (status, folder, last prompt). It turns on by itself when the window is 900px wide or less; on wider windows use the **List** button in the status bar.
+> - No telemetry; update checks and links point to this repo.
+> - Fixes for large Claude transcripts (startup crash), resuming sessions Claude has already deleted, and AI sessions from other terminal apps attaching to idle panes.
+>
+> Build on macOS with Node 22 (Node 26 breaks the native rebuild): `npm ci && npm run rebuild:native && npm run package`, then copy `out/tmax-darwin-arm64/tmax.app` to `/Applications`.
+
 <p align="center">
   <img src="assets/icon.png" alt="tmax logo" width="128" />
 </p>
