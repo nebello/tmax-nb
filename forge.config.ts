@@ -135,7 +135,7 @@ const config: ForgeConfig = {
   },
   makers: [
     // Windows
-    new MakerSquirrel({ authors: "tmax", description: "Powerful multi-terminal app", setupIcon: "./assets/icon.ico", iconUrl: "https://raw.githubusercontent.com/InbarR/tmax/main/assets/icon.ico", ...(windowsSign ? { windowsSign } : {}) }),
+    new MakerSquirrel({ authors: "tmax", description: "Powerful multi-terminal app", setupIcon: "./assets/icon.ico", iconUrl: "https://raw.githubusercontent.com/nebello/tmax-nb/main/assets/icon.ico", ...(windowsSign ? { windowsSign } : {}) }),
     // macOS. Include a double-click "Install tmax.command" helper alongside the
     // app + Applications shortcut. tmax is only ad-hoc signed, so a plain
     // drag-to-Applications leaves the download quarantine flag in place and
@@ -160,7 +160,7 @@ const config: ForgeConfig = {
         name: "tmax",
         productName: "tmax",
         maintainer: "tmax",
-        homepage: "https://github.com/InbarR/tmax",
+        homepage: "https://github.com/nebello/tmax-nb",
         description: "Powerful multi-terminal app with tiling and floating panels",
         categories: ["Utility", "TerminalEmulator"],
       },
@@ -170,7 +170,7 @@ const config: ForgeConfig = {
         name: "tmax",
         productName: "tmax",
         license: "MIT",
-        homepage: "https://github.com/InbarR/tmax",
+        homepage: "https://github.com/nebello/tmax-nb",
         description: "Powerful multi-terminal app with tiling and floating panels",
         categories: ["Utility", "TerminalEmulator"],
       },

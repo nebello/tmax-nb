@@ -134,7 +134,7 @@ const UpdateModal: React.FC<{ info: UpdateInfoState; appVersion: string; onClose
             // never left with only a Later button (TASK-93).
             <button
               className="update-modal-btn primary"
-              onClick={() => window.open(info.url || `https://github.com/InbarR/tmax/releases/latest`, '_blank')}
+              onClick={() => window.open(info.url || `https://github.com/nebello/tmax-nb/releases/latest`, '_blank')}
             >
               Download
             </button>
@@ -168,10 +168,10 @@ const ChangelogModal: React.FC<{ content: string; loading: boolean; onClose: () 
         <div className="update-modal-actions">
           <a
             className="update-modal-link"
-            href="https://github.com/InbarR/tmax/releases"
+            href="https://github.com/nebello/tmax-nb/releases"
             onClick={(e) => {
               e.preventDefault();
-              window.open('https://github.com/InbarR/tmax/releases', '_blank');
+              window.open('https://github.com/nebello/tmax-nb/releases', '_blank');
             }}
             title="Open releases page in your default browser"
           >
@@ -313,7 +313,7 @@ const StatusBar: React.FC = () => {
 
     const urlBody = template + diagShort;
     const clipboardBody = template + diagFull;
-    const url = `https://github.com/InbarR/tmax/issues/new?body=${encodeURIComponent(urlBody)}`;
+    const url = `https://github.com/nebello/tmax-nb/issues/new?body=${encodeURIComponent(urlBody)}`;
     window.terminalAPI.clipboardWrite(clipboardBody);
     window.open(url, '_blank');
     setShowReportModal(false);

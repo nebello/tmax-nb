@@ -20,7 +20,6 @@ import { GitDiffService, resolveGitRoot } from './git-diff-service';
 import { listWorktrees, createWorktree, deleteWorktree, getBranches } from './git-worktree-service';
 import { getDescendantNames } from './process-tree';
 import { registerBacklogHandlers } from './backlog-service';
-import { startUsagePingSchedule } from './telemetry';
 import type { DiffMode } from '../shared/diff-types';
 import * as chokidar from 'chokidar';
 import type { FSWatcher } from 'chokidar';
@@ -1365,7 +1364,7 @@ function registerIpcHandlers(): void {
 
   ipcMain.handle(IPC.VERSION_GET_CHANGELOG, async () => {
     try {
-      const res = await net.fetch('https://raw.githubusercontent.com/InbarR/tmax/main/CHANGELOG.md');
+      const res = await net.fetch('https://raw.githubusercontent.com/nebello/tmax-nb/nebello/CHANGELOG.md');
       return res.ok ? await res.text() : '';
     } catch {
       return '';
@@ -1848,15 +1847,6 @@ app.whenReady().then(() => {
     // Purge leftover clipboard temp dirs from crashed/killed sessions.
     // Deferred — pure cleanup that doesn't affect window appearance.
     sweepStaleClipboardDirs();
-    // Anonymous usage ping: once ~5s after startup, then hourly while running
-    // (deduped to at most one event per clock hour per machine). Guarded so
-    // telemetry can never affect app startup.
-    try {
-      startUsagePingSchedule();
-    } catch {
-      // Telemetry must never affect the app.
-    }
-
     // Click on a tmax OS notification toast → bring tmax to the front. Same
     // restore/show/focus dance as the global show-window hotkey below.
     setNotificationClickHandler(() => {

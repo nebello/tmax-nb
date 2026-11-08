@@ -297,7 +297,7 @@ const CommandPalette: React.FC = () => {
         const platform = navigator.platform;
         const issueBody = `**Version:** ${version}\n**Platform:** ${platform}\n\n**Description:**\n\n\n**Steps to reproduce:**\n1. \n\n**Expected behavior:**\n\n**Actual behavior:**\n`;
         window.terminalAPI.clipboardWrite(issueBody);
-        window.open(`https://github.com/InbarR/tmax/issues/new?body=${encodeURIComponent(issueBody)}`, '_blank');
+        window.open(`https://github.com/nebello/tmax-nb/issues/new?body=${encodeURIComponent(issueBody)}`, '_blank');
         store().addToast('Issue template copied to clipboard. If GitHub blocks you (EMU account), open in a private/incognito window.');
       }},
       { id: 'editConfig', label: 'Open Settings JSON File', action: () => {

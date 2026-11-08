@@ -8,7 +8,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import https from 'node:https';
 
-const GITHUB_REPO = 'InbarR/tmax';
+const GITHUB_REPO = 'nebello/tmax-nb';
 // Allow overriding for local testing (dev builds only): set TMAX_UPDATE_TEST_URL=http://localhost:9999
 const testUrl = !app.isPackaged ? process.env.TMAX_UPDATE_TEST_URL : undefined;
 // Test/verification hook (works in packaged builds too): when TMAX_FORCE_UPDATE=1

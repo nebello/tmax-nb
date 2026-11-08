@@ -8,7 +8,7 @@
 | **macOS** (Intel) | [.dmg](${BASE}/tmax-${VERSION}-x64.dmg) | - |
 | **Linux** | [.deb](${BASE}/tmax_${VERSION}_amd64.deb) | [.rpm](${BASE}/tmax-${VERSION}-1.x86_64.rpm) |
 
-Need something else? [Clone and build from source.](https://github.com/InbarR/tmax#building-from-source)
+Need something else? [Clone and build from source.](https://github.com/nebello/tmax-nb#building-from-source)
 
 <details>
 <summary>Auto-update files (you don't need these manually)</summary>
