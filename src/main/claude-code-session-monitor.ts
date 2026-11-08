@@ -191,6 +191,18 @@ export class ClaudeCodeSessionMonitor {
     return this.sessions.get(id) ?? null;
   }
 
+  /** True if the transcript is still on disk (Claude Code deletes old ones). */
+  sessionFileExists(id: string): boolean {
+    const file = `${id}.jsonl`;
+    if (!UUID_RE.test(file)) return false;
+    try {
+      return fs.readdirSync(this.basePath, { withFileTypes: true })
+        .some((d) => d.isDirectory() && fs.existsSync(path.join(this.basePath, d.name, file)));
+    } catch {
+      return false;
+    }
+  }
+
   // TASK-131: match only on in-memory metadata; see copilot-session-monitor.ts
   // for the full rationale (sync prompt-file reads froze the main process).
   // TASK-147: support 'foo AND bar' tokenization so the user-facing search

@@ -63,7 +63,7 @@ describe('telemetry', () => {
     mockGetPath.mockReturnValue('C:\\Users\\me\\AppData\\Roaming\\tmax');
     mockGetVersion.mockReturnValue('1.11.2');
     mockGetLocale.mockReturnValue('en-US');
-    mockStoreGet.mockReturnValue(undefined);
+    mockStoreGet.mockImplementation((key: string) => key === 'telemetry.enabled' ? true : undefined);
     mockHostname.mockReturnValue('test-host');
     mockUserInfo.mockReturnValue({ username: 'test-user' });
     mockRelease.mockReturnValue('10.0.22631');
@@ -245,6 +245,15 @@ describe('telemetry', () => {
       expect.anything(),
       'utf8',
     );
+  });
+
+  test('skips ping when telemetry was never enabled (opt-in)', async () => {
+    mockStoreGet.mockReturnValue(undefined);
+    const { sendUsagePing } = await import('../../../src/main/telemetry');
+
+    await sendUsagePing();
+
+    expect(mockRequest).not.toHaveBeenCalled();
   });
 
   test('skips ping when telemetry is disabled', async () => {

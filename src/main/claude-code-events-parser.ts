@@ -1,4 +1,5 @@
 import * as fs from 'node:fs';
+import * as readline from 'node:readline';
 import type { CopilotSessionStatus } from '../shared/copilot-types';
 
 /** Extract first text from message content (string or array of blocks). */
@@ -94,6 +95,44 @@ interface CacheEntry {
   awaitingInput: boolean; // true after end_turn, cleared on next user message
 }
 
+const READ_CHUNK = 8 * 1024 * 1024;
+
+/**
+ * Yields each complete line ('\n'-terminated) of a JSONL file from `start`,
+ * reading 8 MB at a time. Transcripts can pass 1 GB; reading them whole blew
+ * the main-process heap (OOM at startup) and overflows V8's max string length.
+ * A trailing partial line (mid-write) is not yielded; `out.end` is the byte
+ * offset just past the last yielded line, so callers can resume from it.
+ */
+export function* readJsonlLines(filePath: string, start = 0, out?: { end: number }): Generator<string> {
+  const fd = fs.openSync(filePath, 'r');
+  try {
+    const buf = Buffer.alloc(READ_CHUNK);
+    let carry = Buffer.alloc(0);
+    let pos = start; // next byte to read
+    let lineStartOffset = start; // file offset of carry[0]
+    if (out) out.end = start;
+    for (;;) {
+      const n = fs.readSync(fd, buf, 0, READ_CHUNK, pos);
+      if (n <= 0) break;
+      pos += n;
+      const chunk = carry.length ? Buffer.concat([carry, buf.subarray(0, n)]) : buf.subarray(0, n);
+      let from = 0;
+      let nl: number;
+      while ((nl = chunk.indexOf(0x0a, from)) !== -1) {
+        const line = chunk.toString('utf-8', from, nl);
+        from = nl + 1;
+        if (out) out.end = lineStartOffset + from;
+        yield line;
+      }
+      lineStartOffset += from;
+      carry = Buffer.from(chunk.subarray(from)); // copy: buf is reused
+    }
+  } finally {
+    fs.closeSync(fd);
+  }
+}
+
 const cache = new Map<string, CacheEntry>();
 
 interface PromptsCacheEntry {
@@ -105,7 +144,6 @@ interface PromptsCacheEntry {
 const promptsCache = new Map<string, PromptsCacheEntry>();
 
 export function parseClaudeCodeSession(filePath: string): ClaudeCodeParsedSession | null {
-  let fd: number | undefined;
   try {
     const stat = fs.statSync(filePath);
     const fileSize = stat.size;
@@ -117,27 +155,6 @@ export function parseClaudeCodeSession(filePath: string): ClaudeCodeParsedSessio
     if (cached && startOffset >= fileSize) {
       return deriveResult(cached, stat.mtimeMs);
     }
-
-    const bytesToRead = fileSize - startOffset;
-    if (bytesToRead <= 0 && cached) {
-      return deriveResult(cached, stat.mtimeMs);
-    }
-    if (bytesToRead <= 0) return null;
-
-    const buffer = Buffer.alloc(bytesToRead);
-    fd = fs.openSync(filePath, 'r');
-    fs.readSync(fd, buffer, 0, bytesToRead, startOffset);
-    fs.closeSync(fd);
-    fd = undefined;
-
-    // Only process through the last '\n'. Bytes past that are a partial
-    // write mid-stream - processing them would JSON.parse-fail AND advance
-    // byteOffset past the half-line, so the remaining half (arriving next
-    // poll) would be parsed without its start and lost too.
-    const lastNewline = buffer.lastIndexOf(0x0a);
-    const completeBytes = lastNewline === -1 ? 0 : lastNewline + 1;
-    const text = buffer.slice(0, completeBytes).toString('utf-8');
-    const lines = text.split('\n').filter((l) => l.trim());
 
     const state: CacheEntry = cached
       ? { ...cached }
@@ -160,24 +177,19 @@ export function parseClaudeCodeSession(filePath: string): ClaudeCodeParsedSessio
           awaitingInput: false,
         };
 
-    for (const line of lines) {
-      processLine(line, state);
+    // Only complete lines are processed: a half-written last line would
+    // JSON.parse-fail AND advance byteOffset past it, losing it next poll.
+    const out = { end: startOffset };
+    for (const line of readJsonlLines(filePath, startOffset, out)) {
+      if (line.trim()) processLine(line, state);
     }
 
-    state.byteOffset = startOffset + completeBytes;
+    state.byteOffset = out.end;
     cache.set(filePath, state);
 
     return deriveResult(state, stat.mtimeMs);
   } catch {
     return null;
-  } finally {
-    if (fd !== undefined) {
-      try {
-        fs.closeSync(fd);
-      } catch {
-        /* ignore */
-      }
-    }
   }
 }
 
@@ -350,9 +362,8 @@ export function extractClaudeCodePrompts(filePath: string, limit = 10): string[]
     if (cached && cached.mtimeMs === stat.mtimeMs && cached.size === stat.size && cached.limit === limit) {
       return cached.prompts;
     }
-    const content = fs.readFileSync(filePath, 'utf-8');
     const prompts: string[] = [];
-    for (const line of content.split('\n')) {
+    for (const line of readJsonlLines(filePath)) {
       if (!line.trim()) continue;
       try {
         const o = JSON.parse(line);
@@ -383,7 +394,7 @@ export function extractClaudeCodePrompts(filePath: string, limit = 10): string[]
 }
 
 /**
- * Async version of extractClaudeCodePrompts — uses fs.promises.readFile to
+ * Async version of extractClaudeCodePrompts — streams the file with readline to
  * avoid blocking the main process event loop (GH #144).
  */
 export async function extractClaudeCodePromptsAsync(filePath: string, limit = 10): Promise<string[]> {
@@ -393,9 +404,9 @@ export async function extractClaudeCodePromptsAsync(filePath: string, limit = 10
     if (cached && cached.mtimeMs === stat.mtimeMs && cached.size === stat.size && cached.limit === limit) {
       return cached.prompts;
     }
-    const content = await fs.promises.readFile(filePath, 'utf-8');
     const prompts: string[] = [];
-    for (const line of content.split('\n')) {
+    const rl = readline.createInterface({ input: fs.createReadStream(filePath), crlfDelay: Infinity });
+    for await (const line of rl) {
       if (!line.trim()) continue;
       try {
         const o = JSON.parse(line);
@@ -430,9 +441,8 @@ export function extractClaudeCodePromptsWithTime(
   limit = 500,
 ): { text: string; time: number }[] {
   try {
-    const content = fs.readFileSync(filePath, 'utf-8');
     const out: { text: string; time: number }[] = [];
-    for (const line of content.split('\n')) {
+    for (const line of readJsonlLines(filePath)) {
       if (!line.trim()) continue;
       try {
         const o = JSON.parse(line);
@@ -479,9 +489,8 @@ export function extractClaudeCodeTranscript(
   limit = 1000,
 ): { role: 'user' | 'assistant'; text: string; time: number }[] {
   try {
-    const content = fs.readFileSync(filePath, 'utf-8');
     const out: { role: 'user' | 'assistant'; text: string; time: number }[] = [];
-    for (const line of content.split('\n')) {
+    for (const line of readJsonlLines(filePath)) {
       if (!line.trim()) continue;
       try {
         const o = JSON.parse(line);

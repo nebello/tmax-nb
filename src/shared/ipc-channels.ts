@@ -42,6 +42,7 @@ export const IPC = {
   AI_INVALIDATE_CACHES: 'ai:invalidateCaches',
   CLAUDE_CODE_LIST_SESSIONS: 'claude-code:listSessions',
   CLAUDE_CODE_GET_SESSION: 'claude-code:getSession',
+  CLAUDE_CODE_SESSION_EXISTS: 'claude-code:sessionExists',
   CLAUDE_CODE_SEARCH_SESSIONS: 'claude-code:searchSessions',
   CLAUDE_CODE_SESSION_UPDATED: 'claude-code:sessionUpdated',
   CLAUDE_CODE_SESSION_ADDED: 'claude-code:sessionAdded',

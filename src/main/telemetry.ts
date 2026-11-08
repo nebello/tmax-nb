@@ -63,11 +63,13 @@ function getTelemetryStore(): Store<TelemetrySettings> {
   return new Store<TelemetrySettings>({ name: 'tmax-config' });
 }
 
+// Fork: opt-in. Upstream pings the original author's Azure hourly unless
+// "telemetry.enabled": false is in tmax-config.json; here it needs true.
 function isTelemetryEnabled(): boolean {
   try {
-    return getTelemetryStore().get('telemetry.enabled') !== false;
+    return getTelemetryStore().get('telemetry.enabled') === true;
   } catch {
-    return true;
+    return false;
   }
 }
 

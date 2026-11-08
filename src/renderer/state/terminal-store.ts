@@ -3520,15 +3520,26 @@ export const useTerminalStore = create<TerminalStore>((set, get) => ({
           // tab's TerminalPanel mounts) still resume their AI sessions in
           // the background. WSL needs prompt detection that lives in the
           // component for now, so skip it here and let mount handle it.
+          // Claude Code deletes transcripts after ~30 days; resuming one that
+          // is gone just prints "No conversation found". Open a plain shell
+          // in the same cwd instead and drop the dead session link.
+          let startupCommand = info.startupCommand;
+          let aiSessionId = info.aiSessionId;
+          if (startupCommand && aiSessionId && !info.wsl
+            && startupCommand === buildResumeCommand(config!, 'claude-code', aiSessionId)
+            && !(await window.terminalAPI.claudeCodeSessionExists(aiSessionId).catch(() => true))) {
+            startupCommand = '';
+            aiSessionId = undefined;
+          }
           let startupCommandSent = false;
-          if (info.startupCommand && !info.wsl) {
-            const cmd = info.startupCommand;
+          if (startupCommand && !info.wsl) {
+            const cmd = startupCommand;
             setTimeout(() => {
               try { window.terminalAPI.writePty(id, cmd + '\r'); } catch { /* terminal gone */ }
             }, 1500);
             startupCommandSent = true;
           }
-          return { id, instance: { id, title: info.title || profile.name, customTitle: info.customTitle ?? !!info.title, shellProfileId: profile.id, cwd, mode: 'tiled' as const, pid, lastProcess: '', startupCommand: info.startupCommand || '', startupCommandSent, aiSessionId: info.aiSessionId, aiAutoTitle: info.aiAutoTitle, tabColor: info.tabColor, wsl: info.wsl, wslDistro: info.wslDistro, workspaceId: info.workspaceId } };
+          return { id, instance: { id, title: info.title || profile.name, customTitle: info.customTitle ?? !!info.title, shellProfileId: profile.id, cwd, mode: 'tiled' as const, pid, lastProcess: '', startupCommand: startupCommand || '', startupCommandSent, aiSessionId, aiAutoTitle: info.aiAutoTitle, tabColor: info.tabColor, wsl: info.wsl, wslDistro: info.wslDistro, workspaceId: info.workspaceId } };
         } catch { return null; }
       }
 
@@ -4354,6 +4365,11 @@ export const useTerminalStore = create<TerminalStore>((set, get) => ({
         if (t.aiSessionId === session.id) continue;
         if (t.mode !== 'tiled' && t.mode !== 'floating') continue;
         if (normCwd(t.cwd) !== sessionCwd) continue;
+        // Fork: a pane with no AI link must have the matching CLI actually
+        // running in it (process-tree scan). cwd alone let any active
+        // session in the same folder - even one in another terminal app -
+        // attach to an idle shell here.
+        if (!t.aiSessionId && t.aiProcessKind !== (sessionType === 'claude' ? 'claude-code' : 'copilot')) continue;
         // Allow rebinding the focused pane when it already has a (now
         // stale) aiSessionId from a previous AI process in the same cwd -
         // the user's "click on the new claude" signal makes it the obvious

@@ -1303,6 +1303,10 @@ function registerIpcHandlers(): void {
     return claudeCodeMonitor?.getSession(id) ?? wslSessionManager?.getClaudeCodeSession(id) ?? null;
   });
 
+  ipcMain.handle(IPC.CLAUDE_CODE_SESSION_EXISTS, (_event, id: string) => {
+    return claudeCodeMonitor ? claudeCodeMonitor.sessionFileExists(id) : true;
+  });
+
   ipcMain.handle(IPC.CLAUDE_CODE_SEARCH_SESSIONS, (_event, query: string) => {
     const native = claudeCodeMonitor?.searchSessions(query) ?? [];
     const wsl = wslSessionManager?.searchClaudeCodeSessions(query) ?? [];

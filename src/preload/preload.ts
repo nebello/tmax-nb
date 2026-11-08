@@ -14,6 +14,7 @@ export interface PtyDiag {
 }
 
 export interface TerminalAPI {
+  claudeCodeSessionExists(id: string): Promise<boolean>;
   createPty(opts: {
     id: string;
     shellPath: string;
@@ -312,6 +313,10 @@ const terminalAPI: TerminalAPI = {
 
   getClaudeCodeSession(id: string) {
     return ipcRenderer.invoke(IPC.CLAUDE_CODE_GET_SESSION, id);
+  },
+
+  claudeCodeSessionExists(id: string) {
+    return ipcRenderer.invoke(IPC.CLAUDE_CODE_SESSION_EXISTS, id);
   },
 
   searchClaudeCodeSessions(query: string) {
