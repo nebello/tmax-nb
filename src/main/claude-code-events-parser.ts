@@ -202,9 +202,14 @@ function extractType(line: string): string | null {
   return m2 ? m2[1] : null;
 }
 
+// Claude Code appends bookkeeping lines right after an end_turn (attachment,
+// last-prompt, ai-title, mode, cost-state, ...). They are not activity: if
+// they cleared awaitingInput a finished turn never showed "waiting for you".
+const ACTIVITY_TYPES = new Set(['user', 'assistant', 'progress', 'system']);
+
 function processLine(line: string, state: CacheEntry): void {
   const type = extractType(line);
-  if (!type) return;
+  if (!type || !ACTIVITY_TYPES.has(type)) return;
 
   state.lastLineType = type;
   state.lastLineHasEndTurn = false;
@@ -216,7 +221,8 @@ function processLine(line: string, state: CacheEntry): void {
   // The `assistant` branch below re-sets the flag when the line is a real
   // end_turn, so the only state that survives is "we genuinely just ended
   // a turn and no other event has come in since".
-  state.awaitingInput = false;
+  // system lines (stop_hook_summary, turn_duration) follow end_turn too.
+  if (type !== 'system') state.awaitingInput = false;
 
   // Extract timestamp
   let lineTs = 0;

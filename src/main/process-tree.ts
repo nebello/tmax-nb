@@ -37,21 +37,27 @@ async function getDirectChildrenWindows(pid: number): Promise<{ pid: number; nam
   }
 }
 
+// `pgrep -lf` prints "<pid> <argv...>" on macOS and "<pid> <comm>" on Linux.
+// The name is the basename of the first token. macOS -l alone reports the
+// resolved binary, which for Claude Code's native installer is its version
+// (`~/.local/bin/claude -> .../claude/versions/2.1.319` shows up as
+// "2.1.319"), so the AI CLI was never recognised there.
+export function parsePgrepOutput(stdout: string): { pid: number; name: string }[] {
+  const out: { pid: number; name: string }[] = [];
+  for (const line of stdout.split('\n')) {
+    const m = /^\s*(\d+)\s+(\S+)/.exec(line);
+    if (!m) continue;
+    out.push({ pid: parseInt(m[1], 10), name: m[2].split('/').pop() || m[2] });
+  }
+  return out;
+}
+
 async function getDirectChildrenUnix(pid: number): Promise<{ pid: number; name: string }[]> {
   try {
-    const { stdout } = await execFileP('pgrep', ['-P', String(pid), '-l'], {
+    const { stdout } = await execFileP('pgrep', ['-P', String(pid), '-lf'], {
       timeout: QUERY_TIMEOUT_MS,
     });
-    const lines = stdout.split('\n').map((l) => l.trim()).filter(Boolean);
-    const out: { pid: number; name: string }[] = [];
-    for (const line of lines) {
-      const m = /^(\d+)\s+(.+)$/.exec(line);
-      if (!m) continue;
-      const childPid = parseInt(m[1], 10);
-      if (!Number.isFinite(childPid)) continue;
-      out.push({ pid: childPid, name: m[2] });
-    }
-    return out;
+    return parsePgrepOutput(stdout);
   } catch {
     return [];
   }

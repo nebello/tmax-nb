@@ -124,6 +124,27 @@ describe('Claude Code parser - awaitingInput clear (GH #118)', () => {
     }
   });
 
+  test('bookkeeping lines after end_turn keep waitingForUser (Claude Code 2.1)', () => {
+    const file = tmpJsonl('cc-bookkeeping');
+    const now = new Date().toISOString();
+    writeJsonl(file, [
+      { type: 'user', timestamp: now, message: { content: 'hi' } },
+      { type: 'assistant', timestamp: now, message: { stop_reason: 'end_turn' } },
+      { type: 'attachment', timestamp: now },
+      { type: 'system', subtype: 'stop_hook_summary', timestamp: now },
+      { type: 'system', subtype: 'turn_duration', timestamp: now },
+      { type: 'last-prompt' },
+      { type: 'ai-title' },
+      { type: 'cost-state' },
+    ]);
+    try {
+      const result = parseClaudeCodeSession(file);
+      expect(result!.status).toBe('waitingForUser');
+    } finally {
+      try { fs.unlinkSync(file); } catch { /* ignore */ }
+    }
+  });
+
   test('end_turn alone (no follow-up event) still reports waitingForUser', () => {
     const file = tmpJsonl('claude-endturn');
     const now = new Date().toISOString();

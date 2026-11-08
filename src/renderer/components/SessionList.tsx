@@ -76,7 +76,7 @@ const SessionCard: React.FC<{ id: TerminalId; active: boolean }> = ({ id, active
         <span className="session-card-status">{status.label}{ago ? ` · ${ago}` : ''}</span>
       </span>
       {cwd && <span className="session-card-path">{shortPath(cwd, home)}</span>}
-      {prompt && <span className="session-card-prompt">{prompt}</span>}
+      {prompt && prompt !== t.title && <span className="session-card-prompt">{prompt}</span>}
     </button>
   );
 };
