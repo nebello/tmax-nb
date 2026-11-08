@@ -175,6 +175,7 @@ const CommandPalette: React.FC = () => {
       { id: 'dirPicker', label: 'Go to Directory (Favorites & Recent)', shortcut: 'Ctrl+Shift+D', action: () => store().toggleDirPicker() },
       { id: 'colorizeAllTabs', label: 'Toggle Tab Colors', shortcut: 'Ctrl+Shift+O', action: () => store().colorizeAllTabs() },
       { id: 'toggleTabBar', label: 'Toggle Tab Bar: Top / Left', action: () => store().toggleTabBarPosition() },
+      { id: 'toggleSessionsView', label: 'Toggle Session List View', action: () => store().toggleSessionsView() },
       { id: 'hideTabBar', label: 'Hide / Show Tab Bar', shortcut: 'Ctrl+Shift+B', action: () => store().toggleHideTabTitles() },
       { id: 'fileExplorer', label: 'File Explorer', shortcut: 'Ctrl+Shift+X', action: () => store().toggleFileExplorer() },
       { id: 'refocus', label: 'Re-focus Terminal (fix stuck input)', action: () => {

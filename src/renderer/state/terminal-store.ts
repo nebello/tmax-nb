@@ -895,6 +895,12 @@ interface TerminalStore {
   showSettings: boolean;
   showBacklog: boolean;
   tabBarPosition: 'top' | 'bottom' | 'left' | 'right';
+  /** Session list view: a scrollable card per open terminal + one terminal
+   *  at a time. Always on when the window is narrow (windowNarrow). */
+  sessionsView: boolean;
+  windowNarrow: boolean;
+  /** Narrow window only: true shows the terminal, false the list. */
+  sessionsShowTerminal: boolean;
   hideTabTitles: boolean;
   hideTabCloseButtons: boolean;
   // When true, closing a tab/pane asks for confirmation first so an
@@ -1039,6 +1045,9 @@ interface TerminalStore {
   closeSettings: () => void;
   updateConfig: (update: Partial<AppConfig>) => Promise<void>;
   toggleTabBarPosition: () => void;
+  toggleSessionsView: () => void;
+  /** Focus a terminal from the session list, switching workspace if needed. */
+  openSessionFromList: (id: TerminalId) => void;
   toggleHideTabTitles: () => void;
   toggleHideTabCloseButtons: () => void;
   toggleConfirmOnCloseSession: () => void;
@@ -1382,6 +1391,9 @@ export const useTerminalStore = create<TerminalStore>((set, get) => ({
   favoriteDirs: [],
   recentDirs: [],
   tabBarPosition: 'top' as 'top' | 'bottom' | 'left' | 'right',
+  sessionsView: false,
+  windowNarrow: false,
+  sessionsShowTerminal: false,
   hideTabTitles: false,
   hideTabCloseButtons: false,
   confirmOnCloseSession: false,
@@ -1406,6 +1418,7 @@ export const useTerminalStore = create<TerminalStore>((set, get) => ({
     if (config?.theme) applyThemeToChromeVars(config.theme, opacity);
     const updates: Record<string, unknown> = { config };
     if (config?.tabBarPosition) updates.tabBarPosition = config.tabBarPosition;
+    if (typeof (config as any)?.sessionsView === 'boolean') updates.sessionsView = (config as any).sessionsView;
     if (typeof (config as any)?.hideTabTitles === 'boolean') updates.hideTabTitles = (config as any).hideTabTitles;
     if (typeof (config as any)?.hideTabCloseButtons === 'boolean') updates.hideTabCloseButtons = (config as any).hideTabCloseButtons;
     if (typeof (config as any)?.confirmOnCloseSession === 'boolean') updates.confirmOnCloseSession = (config as any).confirmOnCloseSession;
@@ -2681,6 +2694,22 @@ export const useTerminalStore = create<TerminalStore>((set, get) => ({
     const newPos = get().tabBarPosition === 'top' ? 'left' : 'top';
     set({ tabBarPosition: newPos });
     get().updateConfig({ tabBarPosition: newPos } as any);
+  },
+
+  toggleSessionsView: () => {
+    const val = !get().sessionsView;
+    set({ sessionsView: val });
+    get().updateConfig({ sessionsView: val } as any);
+  },
+
+  openSessionFromList: (id: TerminalId) => {
+    const t = get().terminals.get(id);
+    if (!t) return;
+    const tabMode = (get().config as { tabMode?: 'flat' | 'workspaces' } | undefined)?.tabMode ?? 'flat';
+    if (tabMode === 'workspaces' && t.workspaceId && t.workspaceId !== get().activeWorkspaceId) get().setActiveWorkspace(t.workspaceId);
+    if (t.mode === 'dormant') get().wakeFromDormant(id);
+    get().setFocus(id);
+    set({ sessionsShowTerminal: true });
   },
 
   setTabBarPosition: (pos: 'top' | 'bottom' | 'left' | 'right') => {

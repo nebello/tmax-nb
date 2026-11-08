@@ -6903,3 +6903,189 @@ select.settings-input {
   opacity: 0.7;
   margin: 0 0 3px 2px;
 }
+
+/* ===== Session list view (fork) =====
+   Wide: a scrollable column of session cards beside the focused terminal.
+   Narrow (<=900px, see App.tsx): the list covers the terminal area; picking a
+   card shows that terminal under a back bar. The terminal stays laid out
+   underneath the list so its PTY size never collapses. */
+.app-shell.sessions-active .main-area { position: relative; }
+
+.session-list {
+  display: flex;
+  flex-direction: column;
+  width: 280px;
+  min-width: 220px;
+  flex-shrink: 0;
+  background: var(--bg-secondary);
+  border-right: 1px solid var(--border-color);
+  overflow: hidden;
+}
+
+.session-list-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  border-bottom: 1px solid var(--border-color);
+}
+
+.session-list-header button {
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-primary);
+  font-size: 18px;
+  cursor: pointer;
+}
+.session-list-header button:hover { background: rgba(255, 255, 255, 0.08); }
+
+.session-list-scroll {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  overscroll-behavior: contain;
+  padding: 6px 6px 12px;
+}
+
+.session-list-group {
+  margin: 10px 4px 4px;
+  padding-left: 6px;
+  border-left: 3px solid var(--border-color);
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-secondary);
+}
+
+.session-card {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  width: 100%;
+  min-height: 44px;
+  margin-top: 4px;
+  padding: 8px 10px;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  min-width: 0;
+  overflow: hidden;
+}
+.session-card:hover { border-color: rgba(255, 255, 255, 0.18); }
+.session-card.active { border-color: var(--accent); }
+.session-card:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+
+.session-card-row { display: flex; align-items: center; gap: 8px; min-width: 0; }
+
+.session-card-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  background: var(--text-secondary);
+  opacity: 0.5;
+}
+.session-card.status-working .session-card-dot { background: var(--accent); opacity: 1; animation: session-dot-pulse 1.2s ease-in-out infinite; }
+.session-card.status-waiting .session-card-dot { background: var(--accent-warning); opacity: 1; }
+.session-card.status-idle .session-card-dot { background: var(--accent-success); opacity: 0.8; }
+.session-card.status-waiting { border-color: color-mix(in srgb, var(--accent-warning) 55%, transparent); }
+
+@keyframes session-dot-pulse { 50% { opacity: 0.35; } }
+@media (prefers-reduced-motion: reduce) {
+  .session-card.status-working .session-card-dot { animation: none; }
+}
+
+.session-card-title {
+  flex: 1;
+  min-width: 0;
+  font-size: 13px;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.session-card-status {
+  flex-shrink: 0;
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+.session-card.status-waiting .session-card-status { color: var(--accent-warning); }
+
+.session-card-path,
+.session-card-prompt {
+  display: block;
+  max-width: 100%;
+  padding-left: 16px;
+  font-size: 11.5px;
+  color: var(--text-secondary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.session-card-prompt { font-style: italic; opacity: 0.85; }
+
+.session-list-back {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 34px;
+  padding: 0 8px;
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border-color);
+  font-size: 12px;
+}
+.session-list-back-btn {
+  min-height: 28px;
+  padding: 0 10px;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font: inherit;
+  cursor: pointer;
+}
+.session-list-badge {
+  flex-shrink: 0;
+  margin-left: auto;
+  border: none;
+  font: inherit;
+  cursor: pointer;
+  padding: 2px 8px;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--accent-warning) 25%, transparent);
+  color: var(--accent-warning);
+  font-weight: 600;
+}
+
+.status-mode-btn.status-sessions-on { color: var(--accent); }
+
+/* Narrow window: list over the terminal area, or terminal under a back bar. */
+.app-shell.sessions-narrow .main-area { flex-direction: column; }
+.app-shell.sessions-narrow:not(.sessions-show-terminal) .session-list {
+  position: absolute;
+  inset: 0;
+  z-index: 40;
+  width: auto;
+  border-right: none;
+}
+.app-shell.sessions-narrow .session-card { min-height: 52px; padding: 10px 12px; }
+
+/* Narrow status bar: drop the tip text, let the buttons scroll sideways. */
+@media (max-width: 900px) {
+  .status-bar { overflow-x: auto; scrollbar-width: none; }
+  .status-bar::-webkit-scrollbar { display: none; }
+  .status-center { display: none; }
+  .status-section { flex-shrink: 0; }
+}

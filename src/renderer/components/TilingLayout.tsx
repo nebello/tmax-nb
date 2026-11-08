@@ -204,6 +204,9 @@ const TilingLayout: React.FC = () => {
   const viewMode = useTerminalStore((s) => s.viewMode);
   const focusedTerminalId = useTerminalStore((s) => s.focusedTerminalId);
   const isRestoring = useTerminalStore((s) => s.isRestoring);
+  // The session list replaces the pane dots: show only the focused pane.
+  const sessionsActive = useTerminalStore((s) => s.sessionsView || s.windowNarrow);
+  const focusLike = viewMode === 'focus' || sessionsActive;
 
   // TASK-158: persistent host nodes keyed by terminalId. Lazily created and
   // reused across tree reshapes so the portaled TerminalPanel never remounts.
@@ -252,11 +255,11 @@ const TilingLayout: React.FC = () => {
   // In normal mode display:contents makes the wrapper transparent to layout.
   return (
     <PaneHostContext.Provider value={getHost}>
-      <div className={viewMode === 'focus' ? 'tiling-focus-mode' : 'tiling-normal-mode'}>
+      <div className={focusLike ? 'tiling-focus-mode' : 'tiling-normal-mode'}>
         <TilingNode node={tilingRoot} />
         <PanePortals leafIds={leafIds} getHost={getHost} />
         <RootDropZones />
-        {viewMode === 'focus' && (
+        {viewMode === 'focus' && !sessionsActive && (
           <FocusModePaneIndicator
             leafIds={leafIds}
             focusedId={focusedTerminalId}

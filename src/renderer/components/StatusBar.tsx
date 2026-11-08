@@ -390,6 +390,8 @@ const StatusBar: React.FC = () => {
   const fontSize = useTerminalStore((s) => s.fontSize);
   const config = useTerminalStore((s) => s.config);
   const viewMode = useTerminalStore((s) => s.viewMode);
+  const windowNarrow = useTerminalStore((s) => s.windowNarrow);
+  const sessionsActive = useTerminalStore((s) => s.sessionsView || s.windowNarrow);
   const broadcastMode = useTerminalStore((s) => s.broadcastMode);
   const gridColumns = useTerminalStore((s) => s.gridColumns);
   const hasAnyColor = useTerminalStore((s) => s.autoColorTabs);
@@ -572,6 +574,13 @@ const StatusBar: React.FC = () => {
               &#128065; {dormantTerminals.length} hidden &#9662;
             </button>
           )}
+          <button
+            className={`status-mode-btn${sessionsActive ? ' status-sessions-on' : ''}`}
+            onClick={() => useTerminalStore.getState().toggleSessionsView()}
+            title={windowNarrow ? 'Session list (always on in a narrow window)' : 'Toggle the session list'}
+          >
+            &#9776; List
+          </button>
           <button
             className="status-mode-btn"
             onClick={() => useTerminalStore.getState().toggleViewMode()}

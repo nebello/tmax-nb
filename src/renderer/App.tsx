@@ -35,6 +35,10 @@ import PromptComposer from './components/PromptComposer';
 import MarkdownPreviewOverlay from './components/MarkdownPreviewOverlay';
 import TranscriptPanel from './components/TranscriptPanel';
 import AppDialogHost from './components/AppDialog';
+import SessionList from './components/SessionList';
+
+// Below this width the session list takes over (list <-> one terminal).
+const NARROW_QUERY = '(max-width: 900px)';
 
 const App: React.FC = () => {
   const loadConfig = useTerminalStore((s) => s.loadConfig);
@@ -70,6 +74,23 @@ const App: React.FC = () => {
   // Pick the tab-bar variant based on config.tabMode (TASK-40).
   const tabMode = useTerminalStore((s) => s.config?.tabMode) ?? 'flat';
   const TopBar = tabMode === 'workspaces' ? WorkspaceTabBar : TabBar;
+  const sessionsView = useTerminalStore((s) => s.sessionsView);
+  const windowNarrow = useTerminalStore((s) => s.windowNarrow);
+  const sessionsShowTerminal = useTerminalStore((s) => s.sessionsShowTerminal);
+  const sessionsActive = sessionsView || windowNarrow;
+
+  useEffect(() => {
+    const mq = window.matchMedia(NARROW_QUERY);
+    // Entering narrow shows the list first: the point is seeing every session.
+    const sync = () => {
+      useTerminalStore.setState({ windowNarrow: mq.matches, sessionsShowTerminal: false });
+      // The list now covers the terminal: don't keep typing into it unseen.
+      if (mq.matches) (document.activeElement as HTMLElement | null)?.blur();
+    };
+    sync();
+    mq.addEventListener('change', sync);
+    return () => mq.removeEventListener('change', sync);
+  }, []);
 
   // TASK-140: keep the global windowFocused flag in sync with OS focus.
   // Per-pane shimmer logic lives in TerminalPanel and reads this flag.
@@ -318,11 +339,12 @@ const App: React.FC = () => {
       onDragEnd={handleDragEnd}
       onDragCancel={handleDragCancel}
     >
-      <div className={`app-shell tab-bar-${tabBarPosition}`}>
+      <div className={`app-shell tab-bar-${tabBarPosition}${sessionsActive ? ' sessions-active' : ''}${windowNarrow ? ' sessions-narrow' : ''}${sessionsShowTerminal ? ' sessions-show-terminal' : ''}`}>
         {!hideTabBar && tabBarPosition === 'top' && <TopBar />}
         <div className="content-row">
           {!hideTabBar && tabBarPosition === 'left' && <TopBar vertical />}
           <div className="main-area">
+            {sessionsActive && <SessionList />}
             <DirPanel />
             <CopilotPanel />
             <WorktreePanel />
